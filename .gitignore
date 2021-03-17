@@ -3,3 +3,5 @@
 cprof
 *_ignore
 
+words.json
+words.old.json
