@@ -1,4 +1,4 @@
-package main
+package nicknamer
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ func (fs *FileStorage) Save(b []byte) error {
 	path := dir + "/" + filename
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Errorf("unable to create old version, path does not exists: %w", err)
+		Log.Errorf("unable to create old version, path does not exists: %v", err)
 	} else {
 		// save old version
 		lastInd := strings.LastIndex(filename, ".")
@@ -40,7 +40,7 @@ func (fs *FileStorage) Save(b []byte) error {
 		}
 	}
 
-	log.Infof("writing to %s: %s", path, string(b))
+	Log.Infof("writing to %s: %s", path, string(b))
 	return ioutil.WriteFile(path, b, 0644)
 }
 

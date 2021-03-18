@@ -1,4 +1,4 @@
-FROM andersfylling/disgord:latest as builder
+FROM golang:1.16.2-alpine3.13 as builder
 MAINTAINER https://github.com/andersfylling
 WORKDIR /build
 COPY . /build
@@ -8,4 +8,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflag
 FROM gcr.io/distroless/base
 WORKDIR /bot
 COPY --from=builder /build/discordbot .
-CMD [\"/bot/discordbot\"]
+CMD ["./discordbot"]

@@ -1,6 +1,6 @@
-module main
+module github.com/andersfylling/nicknamer
 
-go 1.15
+go 1.16
 
 require (
 	github.com/andersfylling/disgord v0.26.9
