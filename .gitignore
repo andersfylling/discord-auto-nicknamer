@@ -3,5 +3,7 @@
 cprof
 *_ignore
 
+cmd/bot/words.json
+cmd/bot/words.old.json
 words.json
 words.old.json

@@ -223,7 +223,7 @@ func main() {
 	dict := &nicknamer.ReadOnlyDictionary{
 		Storage: &nicknamer.FileStorage{
 			FileName: "words.json",
-			DirPath:  "",
+			DirPath:  os.Getenv("BOT_STORAGE_PATH"),
 		},
 	}
 	dict.Load()

@@ -17,6 +17,14 @@ type FileStorage struct {
 	DirPath  string
 }
 
+func (fs *FileStorage) Path() (string, string, string) {
+	dir := fs.Directory()
+	filename := fs.FileName
+	path := dir + "/" + filename
+	
+	return dir, filename, path
+}
+
 func (fs *FileStorage) Directory() string {
 	if fs.DirPath == "" {
 		return "."
@@ -25,9 +33,7 @@ func (fs *FileStorage) Directory() string {
 }
 
 func (fs *FileStorage) Save(b []byte) error {
-	dir := fs.Directory()
-	filename := fs.FileName
-	path := dir + "/" + filename
+	dir, filename, path := fs.Path()
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		Log.Errorf("unable to create old version, path does not exists: %v", err)
@@ -45,8 +51,6 @@ func (fs *FileStorage) Save(b []byte) error {
 }
 
 func (fs *FileStorage) Load() ([]byte, error) {
-	dir := fs.Directory()
-	filename := fs.FileName
-	path := dir + "/" + filename
+	_, _, path := fs.Path()
 	return ioutil.ReadFile(path)
 }
