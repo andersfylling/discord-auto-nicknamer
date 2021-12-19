@@ -177,6 +177,68 @@ func (c *Commando) Demultiplexer(s disgord.Session, data *disgord.MessageCreate)
 		}
 		_ = c.dict.RemoveWord(words[1])
 		commandSuccessful(s, msg.ChannelID, msg.ID)
+	case "list-unmarked-children", "listunmarkedchildren", "luc":
+		guildID := data.Message.GuildID
+		if guildID.IsZero() {
+			commandFailed(s, data.Message.ChannelID, data.Message.ID)
+			log.Errorf("luc: no guild: %s", data.Message)
+			return
+		}
+
+		members, err := s.Guild(guildID).GetMembers(nil)
+		if err != nil {
+			commandFailed(s, data.Message.ChannelID, data.Message.ID)
+			log.Error(err)
+			return
+		}
+
+		mentions := []string{}
+		for _, member := range members {
+			if member.Nick != "" {
+				continue
+			}
+
+			mentions = append(mentions, member.Mention())
+		}
+
+		_, _ = data.Message.Reply(context.Background(), s, "found", len(mentions), "members")
+
+		i := 0
+		for {
+			if i == len(mentions) {
+				break
+			}
+
+			content := []string{}
+			length := 0
+			for ; i < len(mentions); i++ {
+				if length+len(mentions[i])+1 >= 2000 {
+					break
+				}
+
+				content = append(content, mentions[i])
+				length += len(mentions[i]) + 1
+			}
+
+			_, err = s.Channel(data.Message.ChannelID).CreateMessage(&disgord.CreateMessageParams{
+				Content: strings.Join(content, "\n"),
+				AllowedMentions: &disgord.AllowedMentions{
+					Parse: []string{},
+				},
+				MessageReference: &disgord.MessageReference{
+					MessageID: data.Message.ID,
+					ChannelID: data.Message.ChannelID,
+					GuildID:   guildID,
+				},
+			})
+
+			if err != nil {
+				commandFailed(s, data.Message.ChannelID, guildID)
+				log.Errorf("unable to send list of un-nicked members: %s: %+v", err.Error(), content)
+				return
+			}
+		}
+		commandSuccessful(s, data.Message.ChannelID, data.Message.ID)
 	case "help", "h":
 		response := "```markdown\n"
 		response += " * list-words (listwords, lsw): list all words in dictionary used to generate random names\n"
@@ -185,6 +247,7 @@ func (c *Commando) Demultiplexer(s disgord.Session, data *disgord.MessageCreate)
 		response += " * add-name (addname, an): add a new pre-defined name\n"
 		response += " * remove-name (removename, rmn): remove a name from the pre-defined list\n"
 		response += " * remove-word (removeword, rmw): remove a word from the dictionary\n"
+		response += " * list-unmarked-children (luc): list members without a nickname\n"
 		response += " * help (h): display this message\n"
 		response += "```\n"
 		_, _ = s.SendMsg(msg.ChannelID, response)
@@ -198,14 +261,23 @@ func (c *Commando) Demultiplexer(s disgord.Session, data *disgord.MessageCreate)
 
 func main() {
 	const prefix = "!"
-	
+
 	nicknamer.Log = log
 
 	client := disgord.New(disgord.Config{
-		ProjectName:  "discord-auto-nicknamer",
-		BotToken:     os.Getenv("DISCORD_TOKEN"),
-		Logger:       log,
-		RejectEvents: disgord.AllEventsExcept(disgord.EvtMessageCreate, disgord.EvtGuildMemberAdd),
+		ProjectName:        "discord-auto-nicknamer",
+		BotToken:           os.Getenv("DISCORD_TOKEN"),
+		Logger:             log,
+		LoadMembersQuietly: true,
+		RejectEvents: disgord.AllEventsExcept(
+			disgord.EvtReady,
+			disgord.EvtMessageCreate,
+			disgord.EvtGuildMemberAdd,
+			disgord.EvtGuildCreate,
+			disgord.EvtGuildMemberUpdate,
+			disgord.EvtGuildMemberRemove,
+			disgord.EvtGuildMembersChunk,
+		),
 		// ! Non-functional due to a current bug, will be fixed.
 		Presence: &disgord.UpdateStatusPayload{
 			Game: []*disgord.Activity{
